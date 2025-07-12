@@ -1,0 +1,70 @@
+/* src/App.css */
+.App {
+  text-align: center;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+.cat-card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.14);
+  margin: 20px auto 10px;
+  width: 100%;
+  max-width: 360px;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cat-img {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 16px;
+}
+
+.swipe-instructions {
+  margin: 12px 0;
+  font-size: 1.1em;
+  color: #777;
+}
+
+.summary .liked-cats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.cat-img-small {
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+
+.restart-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 18px;
+  background: #f4a261;
+  color: white;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.restart-btn:hover {
+  background: #e76f51;
+}
+
+@media (max-width: 480px) {
+  .cat-card, .App {
+    max-width: 98vw;
+  }
+}
