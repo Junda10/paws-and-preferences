@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import '../App.css';
 
 export default function SwipeDeck({ onComplete }) {
-  const maxCount = 5;
+  const maxCount = 10;
   const [catUrl, setCatUrl] = useState(null);
   const [liked, setLiked] = useState([]);
   const [disliked, setDisliked] = useState([]);
