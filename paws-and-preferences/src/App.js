@@ -6,22 +6,26 @@ import './App.css';
 function App() {
   const [completed, setCompleted] = useState(false);
   const [likedCats, setLikedCats] = useState([]);
+  const [dislikedCats, setDislikedCats] = useState([]);
 
   return (
     <div className="App">
       <h1>Paws & Preferences</h1>
       {!completed ? (
         <SwipeDeck
-          onComplete={(liked) => {
+          onComplete={(liked, disliked) => {
             setLikedCats(liked);
+            setDislikedCats(disliked);
             setCompleted(true);
           }}
         />
       ) : (
         <Summary
           likedCats={likedCats}
+          dislikedCats={dislikedCats}
           onRestart={() => {
             setLikedCats([]);
+            setDislikedCats([]);
             setCompleted(false);
           }}
         />

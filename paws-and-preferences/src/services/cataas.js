@@ -5,6 +5,7 @@ export const fetchRandomCat = async () => {
     params: { json: true },
     headers: { Accept: 'application/json' }
   });
-  // Use the url directly (it's a full URL)
-  return data.url;
+  return data.url.startsWith('http')
+    ? data.url
+    : `https://cataas.com${data.url}`;
 };
