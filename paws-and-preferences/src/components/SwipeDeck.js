@@ -16,30 +16,33 @@ export default function SwipeDeck({ onComplete }) {
   const [undoCat, setUndoCat] = useState(null);
   const [undoing, setUndoing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const hasSwiped = useRef(false);
+  const hasSwiped = useRef(false); // Guards against double count
 
-  // 1. Fetch new cat ONLY if not undoing
+  // Only fetch new cat if not undoing
   useEffect(() => {
-    if (undoing) return; // Prevent fetching when undoing
+    if (undoing) return;
     setLoading(true);
     fetchRandomCat()
       .then((url) => {
         setCatUrl(url);
         setCardKey((k) => k + 1);
         setSwipeDirection(null);
-        hasSwiped.current = false;
       })
       .catch(() => setCatUrl(null))
-      .finally(() => setLoading(false));
-  }, [count]); // ONLY depend on count
+      .finally(() => {
+        setLoading(false);
+        hasSwiped.current = false; // Reset on new card
+      });
+  }, [count]);
 
-  // 2. When undoing, show the undo cat, then reset undoing
+  // When undoing, show the undo cat, then reset undoing
   useEffect(() => {
     if (!undoing || !undoCat) return;
     setCatUrl(undoCat);
     setUndoing(false);
     setLoading(false);
-    setUndoCat(null); // clear for safety
+    setUndoCat(null);
+    hasSwiped.current = false; // Reset on undo card
   }, [undoing, undoCat]);
 
   useEffect(() => {
@@ -51,8 +54,9 @@ export default function SwipeDeck({ onComplete }) {
   };
 
   const handleCardExit = () => {
-    if (hasSwiped.current) return;
+    if (hasSwiped.current) return; // Prevent double count/logic
     hasSwiped.current = true;
+
     if (swipeDirection === 'right') {
       setLiked((prev) => [...prev, catUrl]);
       setHistory((prev) => [...prev, { catUrl, action: 'right' }]);
