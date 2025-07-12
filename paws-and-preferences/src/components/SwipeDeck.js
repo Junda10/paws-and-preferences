@@ -1,176 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { fetchRandomCat } from '../services/cataas';
 import { motion, AnimatePresence } from 'framer-motion';
-//import '../App.css';
-
-// --- Styles ---
-const fancyBg = {
-  minHeight: '100vh',
-  width: '100vw',
-  background: 'linear-gradient(120deg, #f8fafc 70%, #e0f7fa 100%)',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  position: 'relative',
-  padding: '0 0 64px 0',
-};
-
-const deckContainer = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '100%',
-  maxWidth: 400,
-  minHeight: 520,
-  margin: '2rem auto',
-  borderRadius: 36,
-  boxShadow: '0 8px 32px rgba(34,60,80,0.18)',
-  background: 'rgba(255,255,255,0.83)',
-  backdropFilter: 'blur(5px)',
-  position: 'relative',
-};
-
-const cardStyle = {
-  width: '100%',
-  aspectRatio: '4/5',
-  maxWidth: 380,
-  maxHeight: 480,
-  borderRadius: 28,
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-  boxShadow: '0 8px 32px rgba(20,60,80,0.18)',
-  margin: '0 auto',
-  position: 'relative',
-  overflow: 'hidden',
-  display: 'flex',
-  alignItems: 'flex-end',
-};
-
-const cardOverlay = {
-  position: 'center',
-  left: 0,
-  bottom: 0,
-  width: '100%',
-  padding: '20px 16px 16px 16px',
-  background: 'linear-gradient(to top, rgba(0,0,0,0.56) 0%,transparent 70%)',
-  borderBottomLeftRadius: 28,
-  borderBottomRightRadius: 28,
-};
-
-const labelStyle = {
-  textAlign: 'center',
-  color: '#fff',
-  fontSize: 18,
-  fontWeight: 700,
-  letterSpacing: 1.1,
-  textShadow: '0 3px 16px #0007',
-};
-
-const glassSidebar = {
-  position: 'fixed',
-  top: 0,
-  right: 0,
-  height: '100vh',
-  width: 340,
-  background: 'rgba(255,255,255,0.86)',
-  boxShadow: '-4px 0 32px #0002',
-  zIndex: 2000,
-  padding: 32,
-  overflowY: 'auto',
-  display: 'flex',
-  flexDirection: 'column',
-  backdropFilter: 'blur(12px) saturate(1.12)',
-  borderTopLeftRadius: 28,
-  borderBottomLeftRadius: 28,
-};
-
-const historyLabel = {
-  fontWeight: 700,
-  fontSize: 22,
-  marginBottom: 18,
-  marginTop: 2,
-  color: '#7955e8',
-  textAlign: 'center',
-  letterSpacing: 1,
-};
-
-const thumbWrap = {
-  display: 'flex',
-  gap: 10,
-  flexWrap: 'wrap',
-  minHeight: 40,
-  marginTop: 10,
-  marginBottom: 16,
-};
-
-const thumbImg = {
-  width: 64,
-  height: 64,
-  objectFit: 'cover',
-  borderRadius: 12,
-  boxShadow: '0 2px 10px #d6e3f7a0',
-  border: '3px solid #7955e8', // Both like and dislike use same color now
-  transition: 'transform 0.14s, box-shadow 0.14s',
-};
-
-const dislikedExtra = { filter: 'grayscale(0.4)', opacity: 0.7 };
-
-const closeBtn = {
-  position: 'absolute',
-  top: 16,
-  right: 20,
-  fontSize: 26,
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  color: '#aaa',
-  fontWeight: 700,
-  zIndex: 2,
-};
-
-const historyBtn = {
-  padding: '10px 32px',
-  fontSize: 18,
-  background: 'linear-gradient(90deg, #f8cdda 40%, #1d2b64 100%)',
-  border: 'none',
-  borderRadius: 30,
-  color: '#fff',
-  fontWeight: 600,
-  boxShadow: '0 2px 8px #b5b5ec70',
-  cursor: 'pointer',
-  margin: '18px 0',
-  letterSpacing: 0.5,
-  transition: 'transform 0.12s, box-shadow 0.14s, filter 0.14s',
-};
-
-const swipeInstructionStyle = {
-  textAlign: 'center',
-  color: '#7955e8',
-  background: 'rgba(255,255,255,0.76)',
-  borderRadius: 18,
-  margin: '32px 0 18px 0',
-  fontWeight: 700,
-  fontSize: 20,
-  padding: '13px 18px 12px 18px',
-  letterSpacing: 0.5,
-  boxShadow: '0 2px 14px #7955e814',
-};
+import '../App.css';
 
 export default function SwipeDeck({ onComplete }) {
   const maxCount = 5;
   const [catUrl, setCatUrl] = useState(null);
   const [liked, setLiked] = useState([]);
   const [disliked, setDisliked] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState([]); // {catUrl, action}
   const [swipeDirection, setSwipeDirection] = useState(null);
   const [count, setCount] = useState(0);
   const [cardKey, setCardKey] = useState(0);
   const [showHistory, setShowHistory] = useState(false);
+  const [undoCat, setUndoCat] = useState(null);
+  const [undoing, setUndoing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const hasSwiped = useRef(false);
 
+  // 1. Fetch new cat ONLY if not undoing
   useEffect(() => {
+    if (undoing) return; // Prevent fetching when undoing
     setLoading(true);
     fetchRandomCat()
       .then((url) => {
@@ -179,12 +29,18 @@ export default function SwipeDeck({ onComplete }) {
         setSwipeDirection(null);
         hasSwiped.current = false;
       })
-      .catch((err) => {
-        console.error('Fetch error:', err);
-        setCatUrl(null);
-      })
+      .catch(() => setCatUrl(null))
       .finally(() => setLoading(false));
-  }, [count]);
+  }, [count]); // ONLY depend on count
+
+  // 2. When undoing, show the undo cat, then reset undoing
+  useEffect(() => {
+    if (!undoing || !undoCat) return;
+    setCatUrl(undoCat);
+    setUndoing(false);
+    setLoading(false);
+    setUndoCat(null); // clear for safety
+  }, [undoing, undoCat]);
 
   useEffect(() => {
     if (count >= maxCount) onComplete(liked, disliked);
@@ -197,20 +53,42 @@ export default function SwipeDeck({ onComplete }) {
   const handleCardExit = () => {
     if (hasSwiped.current) return;
     hasSwiped.current = true;
-    if (swipeDirection === 'right') setLiked((prev) => [...prev, catUrl]);
-    if (swipeDirection === 'left') setDisliked((prev) => [...prev, catUrl]);
+    if (swipeDirection === 'right') {
+      setLiked((prev) => [...prev, catUrl]);
+      setHistory((prev) => [...prev, { catUrl, action: 'right' }]);
+    }
+    if (swipeDirection === 'left') {
+      setDisliked((prev) => [...prev, catUrl]);
+      setHistory((prev) => [...prev, { catUrl, action: 'left' }]);
+    }
     setSwipeDirection(null);
     setCount((c) => c + 1);
   };
 
+  // Dragging to swipe
   const handleDragEnd = (_, info) => {
     if (swipeDirection !== null) return;
     if (info.offset.x > 120) setSwipeDirection('right');
     else if (info.offset.x < -120) setSwipeDirection('left');
   };
 
+  // Undo last swipe
+  const handleUndo = () => {
+    if (history.length === 0 || count === 0) return;
+    const last = history[history.length - 1];
+    setHistory((prev) => prev.slice(0, -1));
+    setCount((c) => c - 1);
+
+    // Remove from liked/disliked
+    if (last.action === 'right') setLiked((prev) => prev.slice(0, -1));
+    if (last.action === 'left') setDisliked((prev) => prev.slice(0, -1));
+
+    setUndoCat(last.catUrl);
+    setUndoing(true); // triggers undo effect above to restore last cat
+  };
+
   return (
-    <div style={fancyBg}>
+    <div className="fancy-bg">
       {/* History Sidebar */}
       <AnimatePresence>
         {showHistory && (
@@ -219,38 +97,38 @@ export default function SwipeDeck({ onComplete }) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-            style={glassSidebar}
+            className="glass-sidebar"
           >
             <button
               onClick={() => setShowHistory(false)}
-              style={closeBtn}
+              className="close-btn"
               aria-label="Close history sidebar"
             >×</button>
-            <div style={historyLabel}>History</div>
+            <div className="history-label">History</div>
             <div style={{ marginBottom: 28 }}>
-              <div className="history-list-label" style={{ color: '#7955e8', fontWeight: 700 }}>Liked ({liked.length})</div>
-              <div style={thumbWrap}>
+              <div className="history-list-label" style={{ color: '#23bb77' }}>Liked ({liked.length})</div>
+              <div className="thumb-wrap">
                 {liked.length === 0 && <span style={{ color: '#bbb' }}>No liked images yet.</span>}
                 {liked.map((url, i) => (
                   <img
                     key={i}
                     src={url}
                     alt="liked"
-                    style={{ ...thumbImg }}
+                    className="thumb-img"
                   />
                 ))}
               </div>
             </div>
             <div>
-              <div className="history-list-label" style={{ color: '#ff415f', fontWeight: 700 }}>Disliked ({disliked.length})</div>
-              <div style={thumbWrap}>
+              <div className="history-list-label" style={{ color: '#ff415f' }}>Disliked ({disliked.length})</div>
+              <div className="thumb-wrap">
                 {disliked.length === 0 && <span style={{ color: '#bbb' }}>No disliked images yet.</span>}
                 {disliked.map((url, i) => (
                   <img
                     key={i}
                     src={url}
                     alt="disliked"
-                    style={{ ...thumbImg, ...dislikedExtra }}
+                    className="thumb-img disliked"
                   />
                 ))}
               </div>
@@ -270,7 +148,6 @@ export default function SwipeDeck({ onComplete }) {
       {/* History Button */}
       <button
         onClick={() => setShowHistory((v) => !v)}
-        style={historyBtn}
         className="fancy-history-btn"
       >
         {showHistory ? 'Hide History' : 'Show History'}
@@ -286,20 +163,19 @@ export default function SwipeDeck({ onComplete }) {
         </div>
       ) : (
         <>
-          {/* Card Area */}
-          <div style={deckContainer}>
+          <div className="deck-container">
             <AnimatePresence mode="wait">
               {(loading || !catUrl) ? (
                 <motion.div
                   key="loading"
+                  className="card"
                   style={{
-                    ...cardStyle,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: 22,
                     color: '#aaa',
-                    background: '#fff',
+                    background: '#fff'
                   }}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -313,7 +189,6 @@ export default function SwipeDeck({ onComplete }) {
                     key={cardKey + '-' + swipeDirection}
                     className="card"
                     style={{
-                      ...cardStyle,
                       backgroundImage: `url(${catUrl})`,
                     }}
                     initial={{ x: 0, opacity: 1, rotate: 0 }}
@@ -326,14 +201,13 @@ export default function SwipeDeck({ onComplete }) {
                     transition={{ type: 'spring', stiffness: 300, damping: 32 }}
                     onAnimationComplete={handleCardExit}
                   >
-                    <div style={cardOverlay}></div>
+                    <div className="card-overlay"></div>
                   </motion.div>
                 ) : (
                   <motion.div
                     key={cardKey}
                     className="card"
                     style={{
-                      ...cardStyle,
                       backgroundImage: `url(${catUrl})`,
                     }}
                     initial={{ x: 0, opacity: 1, rotate: 0 }}
@@ -346,7 +220,7 @@ export default function SwipeDeck({ onComplete }) {
                     onDragEnd={handleDragEnd}
                     whileHover={{ scale: 1.04, boxShadow: '0 12px 36px rgba(20,60,80,0.22)' }}
                   >
-                    <div style={cardOverlay}></div>
+                    <div className="card-overlay"></div>
                   </motion.div>
                 )
               )}
@@ -354,54 +228,31 @@ export default function SwipeDeck({ onComplete }) {
           </div>
 
           {/* SWIPE INSTRUCTION */}
-          <div style={swipeInstructionStyle}>
+          <div className="swipe-instruction">
             Swipe left to <span style={{ color: '#ff415f', fontWeight: 800 }}>dislike</span>, right to <span style={{ color: '#23bb77', fontWeight: 800 }}>like</span>!
           </div>
 
           {/* BUTTON ROW */}
-          <div className="swipe-btn-row" style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 56,
-            marginTop: 22,
-            marginBottom: 18,
-            width: '100%',
-            maxWidth: 520,
-          }}>
+          <div className="swipe-btn-row">
             <button
               className="swipe-btn dislike"
               onClick={() => handleButtonSwipe('left')}
               disabled={swipeDirection !== null || loading}
-              style={{
-                background: 'linear-gradient(45deg, #ff415f, #ffb199)',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: 22,
-                borderRadius: 40,
-                boxShadow: '0 2px 10px #ff415f22',
-                minWidth: 160,
-                padding: '20px 0',
-                letterSpacing: 1.2,
-                transition: 'transform 0.12s, box-shadow 0.18s, filter 0.12s',
-              }}
             >❎ Dislike</button>
             <button
               className="swipe-btn like"
               onClick={() => handleButtonSwipe('right')}
               disabled={swipeDirection !== null || loading}
-              style={{
-                background: 'linear-gradient(45deg, #43e97b, #38f9d7)',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: 22,
-                borderRadius: 40,
-                boxShadow: '0 2px 10px #43e97b22',
-                minWidth: 160,
-                padding: '20px 0',
-                letterSpacing: 1.2,
-                transition: 'transform 0.12s, box-shadow 0.18s, filter 0.12s',
-              }}
             >❤️ Like</button>
+          </div>
+
+          {/* Undo Button */}
+          <div style={{ width: "100%", textAlign: "center", marginTop: 18 }}>
+            <button
+              className="undo-btn"
+              onClick={handleUndo}
+              disabled={history.length === 0 || swipeDirection !== null || loading || count === 0}
+            >↩️ Undo Last Swipe</button>
           </div>
 
           {/* Counter */}
